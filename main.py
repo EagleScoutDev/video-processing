@@ -1,4 +1,7 @@
 import io
+import os
+import threading
+
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
@@ -43,6 +46,12 @@ class LoadVideoFrame(ctk.CTkFrame):
             self.next_button_enabled.set(True)
     
     def download_youtube_video(self):
+        thread = threading.Thread(target=self.download_youtube_video_target)
+        thread.start()
+        self.loading_label = ctk.CTkLabel(self, text="Downloading...")
+        self.loading_label.pack(pady=20, padx=20)
+    
+    def download_youtube_video_target(self):
         ytdl_opts = {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
             "outtmpl": "%(title)s.%(ext)s"
@@ -54,6 +63,7 @@ class LoadVideoFrame(ctk.CTkFrame):
                 print(info)
                 self.file_path.set(f"{info['title']}.{info['ext']}")
                 self.next_button_enabled.set(True)
+                self.loading_label.pack_forget()
             else:
                 CTkMessagebox(title="Error", message="Invalid link", icon="cancel")
 
@@ -243,23 +253,27 @@ class ExportVideoFrame(ctk.CTkFrame):
             f"\nEnd time: {self.end_time.get()}"
             f"\nTop left: ({self.top_x.get() * self.coords_scale.get()}, {self.top_y.get() * self.coords_scale.get()})"
             f"\nBottom right: ({self.bottom_x.get() * self.coords_scale.get()}, {self.bottom_y.get() * self.coords_scale.get()})")
-        
-        # self.bar = ctk.CTkProgressBar(self)
-        # self.bar.pack(pady=20, padx=20, fill="x")
+
+        self.bar = ctk.CTkProgressBar(self)
+        self.bar.pack(pady=20, padx=20, fill="x")
         res = FFmpeg()\
             .input(self.file_path.get(), ss=self.start_time.get(), to=self.end_time.get())\
             .output(save_as, vf=f"crop={self.coords_scale.get() * (self.bottom_x.get() - self.top_x.get())}:{self.coords_scale.get() * (self.bottom_y.get() - self.top_y.get())}:{self.coords_scale.get() * self.top_x.get()}:{self.coords_scale.get() * self.top_y.get()}", vcodec="libx264")\
 
-        # @res.on("progress")
-        # def on_progress(progress):
-        #     self.bar.set(progress.frame / total_frames)
+        @res.on("progress")
+        def on_progress(progress):
+            print(progress)
+            self.bar.set(progress.frame / total_frames)
         
-        # @res.on("end")
-        # def on_end():
-        #     self.bar.pack_forget()
-        #     print("Video exported")
+        @res.on("completed")
+        def on_completed():
+            # self.bar.pack_forget()
+            print("Video exported")
+            os.remove(self.file_path.get())
+            CTkMessagebox(title="Success", message="Video exported", icon="info")
         
-        res.execute()
+        thread = threading.Thread(target=res.execute)
+        thread.start()
         
 
 class App(ctk.CTk):
