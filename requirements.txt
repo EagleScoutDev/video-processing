@@ -1,0 +1,6 @@
+yt-dlp==2023.12.30
+ffprobe-python==1.0.3
+python-ffmpeg==2.0.10
+CTkMessageBox==2.5
+customtkinter==5.2.2
+tkvideoplayer==2.3
