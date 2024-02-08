@@ -3,8 +3,11 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 from tkVideoPlayer import TkinterVideo
+from CTkMessagebox import CTkMessagebox
+
 from ffmpeg import FFmpeg
 from ffprobe import FFProbe
+from yt_dlp import YoutubeDL
 from PIL import Image, ImageTk
 
 class LoadVideoFrame(ctk.CTkFrame):
@@ -19,6 +22,16 @@ class LoadVideoFrame(ctk.CTkFrame):
         self.button = ctk.CTkButton(self, text="Select a video file", command=self.select_video)
         self.button.pack(pady=20, padx=20)
 
+        ctk.CTkLabel(self, text="OR").pack(pady=20, padx=20)
+
+        self.youtube_link = tk.StringVar(self, "")
+        ctk.CTkLabel(self, text="Youtube video link:").pack(pady=20, padx=20)
+        self.youtube_link_label = ctk.CTkEntry(self, textvariable=self.youtube_link)
+        self.youtube_link_label.pack(pady=20, padx=20)
+
+        self.youtube_button = ctk.CTkButton(self, text="Download", command=self.download_youtube_video)
+        self.youtube_button.pack(pady=20, padx=20)
+
         self.file_path_label = ctk.CTkLabel(self, textvariable=self.file_path)
         self.file_path_label.pack(pady=20, padx=20)
 
@@ -28,6 +41,22 @@ class LoadVideoFrame(ctk.CTkFrame):
         if file_path:
             self.file_path.set(file_path.name)
             self.next_button_enabled.set(True)
+    
+    def download_youtube_video(self):
+        ytdl_opts = {
+            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+            "outtmpl": "%(title)s.%(ext)s"
+        }
+        with YoutubeDL(ytdl_opts) as ytdl:
+            info = ytdl.extract_info(self.youtube_link.get(), download=False)
+            if info["extractor"] == "youtube":
+                ytdl.download([self.youtube_link.get()])
+                print(info)
+                self.file_path.set(f"{info['title']}.{info['ext']}")
+                self.next_button_enabled.set(True)
+            else:
+                CTkMessagebox(title="Error", message="Invalid link", icon="cancel")
+
 
 class TrimVideoFrame(ctk.CTkFrame):
     def __init__(self, master, file_path, start_time, end_time, next_button_enabled):
@@ -300,6 +329,11 @@ class App(ctk.CTk):
             self.file_path.set("")
             self.start_time.set(0)
             self.end_time.set(0)
+            self.top_x.set(0)
+            self.top_y.set(0)
+            self.bottom_x.set(0)
+            self.bottom_y.set(0)
+            self.coords_scale.set(0)
             self.next_button_enabled.set(False)
             self.next_button.configure(text="Next")
             return
