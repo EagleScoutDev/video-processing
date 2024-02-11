@@ -185,7 +185,7 @@ class CropVideoFrame(ctk.CTkFrame):
 
         self.image = Image.open(io.BytesIO(self.ffmpeg_output))
         # set width to 1024 and height to maintain aspect ratio
-        WIDTH = int(0.5 * self.winfo_screenwidth())
+        WIDTH = int(0.7 * 1280)
         w = WIDTH
         h = WIDTH * self.image.height // self.image.width
         if h > WIDTH:
@@ -244,7 +244,9 @@ class ExportVideoFrame(ctk.CTkFrame):
         save_as = ctk.filedialog.asksaveasfilename(defaultextension=".mp4", filetypes=[("Video files", "*.mp4")])
         if not save_as:
             return
-        total_frames = FFProbe(self.file_path.get()).streams[0].frames()
+        probe_res = FFProbe(self.file_path.get()).streams[0]
+        fps = probe_res.framerate
+        total_frames = (self.end_time.get() - self.start_time.get()) * fps
         print("Exporting video"
             f"\nFile path: {self.file_path.get()}"
             f"\nSave as: {save_as}"
@@ -262,12 +264,12 @@ class ExportVideoFrame(ctk.CTkFrame):
 
         @res.on("progress")
         def on_progress(progress):
-            print(progress)
+            # print(progress)
             self.bar.set(progress.frame / total_frames)
         
         @res.on("completed")
         def on_completed():
-            # self.bar.pack_forget()
+            self.bar.pack_forget()
             print("Video exported")
             os.remove(self.file_path.get())
             CTkMessagebox(title="Success", message="Video exported", icon="info")
@@ -305,7 +307,7 @@ class App(ctk.CTk):
         self.top_y = tk.IntVar(self, 0)
         self.bottom_x = tk.IntVar(self, 0)
         self.bottom_y = tk.IntVar(self, 0)
-        self.coords_scale = tk.IntVar(self, 0)
+        self.coords_scale = tk.DoubleVar(self, 0)
 
         self.next_button = ctk.CTkButton(self, text="Next", command=self.next_step, state="disabled")
         self.next_button.pack(side="bottom", padx=20, pady=20)
